@@ -1,0 +1,41 @@
+\documentclass[12pt,titlepage]{article}
+
+\input{format/preamble}
+
+%%%
+\def\nameoflab{Project and Time Plan}
+\def\coursecode{FYSM64}
+
+\def\authorOne{Max Eriksson}
+\def\authorOneMail{ma370er-s@student.lu.se}
+\def\headerName{M. Eriksson}
+
+
+\begin{document}
+\include{format/titlepage}
+%\pagestyle{empty}
+\input{format/header}
+%\doublespacing
+\fancyfoot{}
+%\tableofcontents
+\clearpage
+\input{format/header.tex}
+\setcounter{page}{1}
+
+\pagestyle{fancy}
+
+\input{paper/projectPlan}
+\input{paper/timePlan}
+
+\clearpage
+\addcontentsline{toc}{section}{References}
+\begin{singlespace}
+\bibliographystyle{ieeetr}
+\bibliography{references.bib}
+\end{singlespace}
+
+
+%\include{paper/appendix}
+
+
+\end{document}
