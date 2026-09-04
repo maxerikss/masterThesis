@@ -1,0 +1,42 @@
+\documentclass[12pt,titlepage]{article}
+
+\input{format/preamble}
+
+%%%
+\def\nameoflab{Master Thesis}
+\def\coursecode{FYSM64}
+
+\def\authorOne{Max Eriksson}
+\def\authorOneMail{maxerikss@gmail.com}
+\def\headerName{M. Eriksson}
+
+\def\supervisor{Peter Samuelsson}
+\def\supervisorMail{peter.samuelsson@fysik.lu.se}
+
+\begin{document}
+\include{format/titlepage}
+%\pagestyle{empty}
+\input{format/header}
+
+\tableofcontents
+
+\clearpage
+\setcounter{page}{1}
+
+\pagestyle{fancy}
+\doublespacing
+
+\input{paper/introduction}
+\input{paper/method}
+\input{paper/result}
+\input{paper/discussion}
+
+\clearpage
+\addcontentsline{toc}{section}{References}
+\begin{singlespace}
+\printbibliography
+\end{singlespace}
+
+%\include{paper/appendix}
+
+\end{document}
