@@ -1,0 +1,59 @@
+\section{Calculation the Quantum Limit}
+We write the full Hamiltonian as
+\begin{equation}
+    H = H_\mathrm{det} + H_\mathrm{sys} + H_\mathrm{int} + H_\mathrm{env},
+\end{equation}
+where $H_\mathrm{det}$ is the Hamiltonian of the detector defined as
+\begin{equation}
+    H_\mathrm{det} = \omega_r a^\dagger a + \frac{\omega_q}{2} \sigma_z + g (a^\dagger \sigma_- + a \sigma_+),
+\end{equation}
+$H_\mathrm{sys}$ is the Hamiltonian of the measured system which is defined, for a DQD in energy basis, as
+\begin{equation}
+    H_\mathrm{sys} = \frac{\omega_d}{2} \tau_z,
+\end{equation}
+$H_\mathrm{int}$ is the interaction Hamiltonian between the detector and the measured system, defined as
+\begin{equation}
+    H_\mathrm{int} = g_d [C \tau_z \sigma_z + S(\tau_+ \sigma_- + \tau_- \sigma_+)],
+\end{equation}
+and $H_\mathrm{env}$ is the Hamiltonian consisting of the environment causing relaxation and dephasing, described as
+\begin{equation}
+    H_\mathrm{env} = H_\mathrm{cavity} + H_\mathrm{rel}^\sigma + H_\phi^\sigma + H_\mathrm{rel}^\tau + H_\phi^\tau.
+\end{equation}
+The cavity Hamiltonian is defined as
+\begin{equation}
+    H_\mathrm{cavity} = \int d\omega \omega b^\dagger(\omega) b(\omega) + i \sqrt{\frac{\kappa}{2\pi}} \int d\omega [b^\dagger(\omega) a - b(\omega) a^\dagger],
+\end{equation}
+the relaxation Hamiltonians for the qubits are defined similarly but with $\Gamma_1^\sigma$ and $\Gamma_1^\tau$ instead of $\kappa$ and their own bosonic operators, $\xi_{\phi/\sigma}$. The dephasing Hamiltonians are defined by
+\begin{equation}
+    H_\phi^\sigma = \int d\omega \omega \xi_\phi^\dagger(\omega)\xi_\phi(\omega) + \sigma_z \int d\omega \lambda_\omega [\xi_\phi^\dagger(\omega) + \xi_\phi(\omega)]
+\end{equation}
+
+We define 
+\begin{equation}
+    H_\mathrm{closed} = H_\mathrm{det} + H_\mathrm{sys} + H_\mathrm{int}.
+\end{equation}
+Using Heisenberg's equation of motion we obtain
+\begin{equation}
+    \dot{b}(\omega) = -i [b(\omega), H] = -i [b(\omega), H_\mathrm{env}] = -i \omega b(\omega) + \sqrt{\frac{\kappa}{2\pi}} a
+\end{equation}
+with solution
+\begin{equation}
+    b(\omega, t) = e^{-i\omega(t-t_0)} b(\omega, t_0) + \sqrt{\frac{\kappa}{2\pi}} \int_{t_0}^{t} dt' e^{-i\omega(t-t')} a(t').
+\end{equation}
+
+We also define the quantum Langevin equation for an operator $o$ as
+\begin{equation}
+    \dot{o} = -i[o, H] + \sum_l\left[ - [o, a^\dagger_l] \left( \frac{\kappa_l}{2} a_l + \sqrt{\kappa} b_{\mathrm{in},l} (t) \right) + \left(\frac{\kappa}{2} a^\dagger_l + \sqrt{\kappa_l} b^\dagger_{\mathrm{in},l} (t) \right) [o, a_l]\right],
+\end{equation}
+where the $H$ is the Hamiltonian minus the bath and $l \in \{\mathrm{c}, \mathrm{i}\}$ for c being the coupling port to the transmission line and i being the internal losses. It is also noted that $a_\mathrm{c} = a_\mathrm{i} = a$, $b_{\mathrm{in,c}} = b_{\mathrm{in}}$, $b_{\mathrm{in,i}} = \xi$, and $\kappa = \kappa_\mathrm{c} + \kappa_\mathrm{i}$. Applying the quantum Langevin equation to the system we get the following equations of motion
+\begin{alphaAlign}
+    \dot{a} &= - \left(i\omega_r + \frac{\kappa}{2}\right) a - i g \sigma_- - \sqrt{\kappa_\mathrm{c}} b_\mathrm{in}(t) - \sqrt{\kappa_\mathrm{i}} \xi(t) \\
+    \dot{\sigma}_- &= -(i\omega_q + 2 i g_d C \tau_z + \Gamma_2^\sigma) \sigma_- + i(g a + g_d S \tau_-) \sigma_z\\
+    \dot{\tau}_- &= -(i\omega_d + 2 i g_d C \sigma_z + \Gamma_2^\tau) \tau_- + i g_d S \sigma_- \tau_z\\
+    \dot{\sigma}_z &= 2ig (a^\dagger \sigma_- - a \sigma_+) + 2 i g_d S (\tau_+ \sigma_- - \tau_-\sigma_+) - \Gamma_1^\sigma (\sigma_z + 1)\\
+    \dot{\tau}_z &= 2 i g_d S (\sigma_+\tau_- - \sigma_- \tau_+) - \Gamma_1^\tau (\tau_z + 1),
+\end{alphaAlign}
+where we have
+\begin{equation}
+    \Gamma_2 = \frac{\Gamma_1}{2} + \Gamma_\phi.
+\end{equation}

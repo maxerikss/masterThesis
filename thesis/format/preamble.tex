@@ -80,6 +80,21 @@
 }
 
 \lstset{style=mystyle}
+\usepackage{environ}
 
 % using inkscapefiles
 \graphicspath{{figures/}}
+
+
+
+\numberwithin{equation}{section}
+\numberwithin{figure}{section}
+
+\NewEnviron{alphaAlign}
+{
+    \begin{subequations}
+    \begin{align}
+        \BODY
+    \end{align}
+    \end{subequations}
+}
