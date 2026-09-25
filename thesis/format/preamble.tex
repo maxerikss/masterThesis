@@ -19,6 +19,10 @@
 % NOTE: load hyperref late (after packages that may create page anchors)
 % We'll load it after `lastpage` further down to avoid duplicate page anchor definitions.
 
+\usepackage{caption}
+\captionsetup{format=hang,
+              labelfont={bf, sf}}
+
 \usepackage{setspace}
 \usepackage{graphicx}
 \usepackage{subcaption}
@@ -98,3 +102,5 @@
     \end{align}
     \end{subequations}
 }
+
+\renewcommand{\tr}[1]{\mathrm{tr}\left\{#1\right\}}

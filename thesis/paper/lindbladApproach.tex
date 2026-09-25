@@ -1,1 +1,99 @@
-\section{Linblad Approach}
+\section{Lindblad Approach}
+We write the full Hamiltonian as
+\begin{equation}
+    H = H_\mathrm{det} + H_\mathrm{sys} + H_\mathrm{int} + H_\mathrm{env},
+\end{equation}
+where $H_\mathrm{det}$ is the Hamiltonian of the detector defined as
+\begin{equation}
+    H_\mathrm{det} = \omega_r a^\dagger a + \frac{\omega_q}{2} \sigma_z + g (a^\dagger \sigma_- + a \sigma_+),
+\end{equation}
+$H_\mathrm{sys}$ is the Hamiltonian of the measured system which is defined, for a DQD in energy basis, as
+\begin{equation}
+    H_\mathrm{sys} = \frac{\omega_s}{2} \tau_z,
+\end{equation}
+$H_\mathrm{int}$ is the interaction Hamiltonian between the detector and the measured system, defined as
+\begin{equation}
+    H_\mathrm{int} = g_d [C \tau_z \sigma_z + S(\tau_+ \sigma_- + \tau_- \sigma_+)],
+\end{equation}
+and $H_\mathrm{env}$ is the Hamiltonian consisting of the transmission line, described as
+\begin{equation}
+    H_\mathrm{env} = \int d\omega \omega b^\dagger(\omega) b(\omega) + i \sqrt{\frac{\kappa}{2\pi}} \int d\omega [b^\dagger(\omega) a - b(\omega) a^\dagger].
+\end{equation}
+From the quantum Langevin equation, we have the following equations of motion
+\begin{alphaAlign}
+    \dot{a} &= - \left(i\omega_r + \frac{\kappa}{2}\right) a - i g \sigma_- - \sqrt{\kappa_\mathrm{c}} b_\mathrm{in}(t) \\
+    \dot{\sigma}_- &= -(i\omega_q + 2 i g_d C \tau_z + \Gamma_2^\sigma) \sigma_- + i(g a + g_d S \tau_-) \sigma_z\\
+    \dot{\tau}_- &= -(i\omega_s + 2 i g_d C \sigma_z + \Gamma_2^\tau) \tau_- + i g_d S \sigma_- \tau_z\\
+    \dot{\sigma}_z &= 2ig (a^\dagger \sigma_- - a \sigma_+) + 2 i g_d S (\tau_+ \sigma_- - \tau_-\sigma_+) - \Gamma_1^\sigma (\sigma_z + 1)\\
+    \dot{\tau}_z &= 2 i g_d S (\sigma_+\tau_- - \sigma_- \tau_+) - \Gamma_1^\tau (\tau_z + 1),
+\end{alphaAlign}
+
+To instead use the Lindblad approach we start by writing the Lindblad master equation for the density matrix as
+\begin{equation}
+    \dot{\rho} = -i [H, \rho] + \sum_i \gamma_i \mathcal{D}[L_i]\rho
+\end{equation}
+with
+\begin{equation}
+    \mathcal{D}[L_i]\rho = L_i \rho L_i^\dagger - \frac{1}{2} \{L_i^\dagger L_i, \rho\}.
+\end{equation}
+In this formalism we will have to rewrite the Hamiltonian, since the dissipation to the environment comes from the dissipation terms and to include the drive. We define
+\begin{equation}
+    H_\mathrm{closed} = H_\mathrm{det} + H_\mathrm{sys} + H_\mathrm{int},
+\end{equation}
+and
+\begin{equation}
+    H = H_\mathrm{closed} + H_\mathrm{drive}.
+\end{equation}
+
+For an expectation value $\expval{o}$ the equation of motion can be written as
+\begin{equation}
+    \partial_t \expval{o} = \tr{o \dot{\rho}}.
+\end{equation}
+We require that the equation of motion calculated from the Lindblad equation is the same as the ones calculated from the quantum Langevin equation. Thus, for the operator $a$ we have
+\begin{alphaAlign}
+    \partial_t \expval{a} &= -i \tr{a [H, \rho]} + \sum_i \gamma_i \tr{a \mathcal{D}[L_i]\rho} \\
+    &= -i \tr{[a,H_\mathrm{closed}] \rho} - i \tr{[a,H_\mathrm{drive}]  \rho} + \sum_i \gamma_i \tr{a \mathcal{D}[L_i]\rho}
+\end{alphaAlign}
+by using the cyclic property of the trace. Calculating the commutator for the closed part we find
+\begin{equation}
+    [a, H_\mathrm{closed}] = \omega_r a + g\sigma_-.
+\end{equation}
+It is easy to verify that the only relevant dissipation term is $\gamma_1 = \kappa$ and $L_1 = a$, and
+\begin{equation}
+    \tr{a \mathcal{D}[a]\rho} = -\frac{1}{2}\expval{a}.
+\end{equation}
+To obtain the drive Hamiltonian we take the difference between the two equations of motion and equate
+\begin{alphaAlign}
+    -i \tr{[a,H_\mathrm{drive}]  \rho} &= -\sqrt{\kappa_\mathrm{c}} \expval{b_\mathrm{in}}\\
+    0 &= \tr{i [a,H_\mathrm{drive}]  \rho - \sqrt{\kappa_\mathrm{c}} b_\mathrm{in} \rho}\\
+    0 &= i[a,H_\mathrm{drive}] - \sqrt{\kappa_\mathrm{c}} b_\mathrm{in} \\
+    [a,H_\mathrm{drive}] &= -i \sqrt{\kappa_\mathrm{c}} b_\mathrm{in}.
+\end{alphaAlign}
+Naïvely we see that $H_\mathrm{drive} = -i \sqrt{\kappa_c}b_\mathrm{in} a^\dagger$ solves the equation. However, this cannot be the full Hamiltonian since we require that it to be Hermitian. A simple way to make it Hermitian is to add the Hermitian conjugate, and thus
+\begin{equation}
+    H_\mathrm{drive} = -i \sqrt{\kappa_c}(b_\mathrm{in} a^\dagger - b_\mathrm{in}^\dagger a).
+\end{equation}
+Carrying out similar calculations for each equation of motion gives the operator and corresponding rates for all Lindblad dissipation terms. The result of the calculations can be seen in Tab. \ref{tab:dissipationRates}.
+
+\begin{table}[t]
+    \centering
+    \begin{tabular}{llllll}
+        \toprule
+        Operator & $a$ & $\sigma_-$ & $\tau_-$ & $\sigma_z$ & $\tau_z$\\
+        Rate & $\kappa$ & $\Gamma_1^\sigma$ & $\Gamma_1^\tau$ & $\Gamma_\phi^\sigma/2$ & $\Gamma_\phi^\tau/2$\\
+        \bottomrule
+    \end{tabular}
+    \caption{Lindblad jump operators, $L_i$, and their corresponding rates, $\gamma_i$. The possible dissipation channels are photon loss from cavity ($a$), longitudinal relaxation of the qubits ($\sigma_-, \tau_i$), and loss of phase coherence ($\sigma_z, \tau_z$).}
+    \label{tab:dissipationRates}
+\end{table}
+
+Putting everything together yields the final Lindblad master equation for this system as
+\begin{equation}
+    \dot{\rho} = - i[H, \rho] + \kappa \mathcal{D}[a]\rho + \Gamma_1^\sigma\mathcal{D}[\sigma_-]\rho + \Gamma_1^\tau\mathcal{D}[\tau_-]\rho + \frac{\Gamma_\phi^\sigma}{2}\mathcal{D}[\sigma_z]\rho + \frac{\Gamma_\phi^\tau}{2}\mathcal{D}[\tau_z]\rho,
+\end{equation}
+with
+\begin{equation}
+    H = H_\text{det} + H_\mathrm{sys} + H_\mathrm{int} + H_\text{drive}.
+\end{equation}
+
+The next step is to rotate this into the drive frame, such that we remove any time dependence and instead focus on detunings.

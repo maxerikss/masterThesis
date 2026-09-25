@@ -9,7 +9,7 @@ where $H_\mathrm{det}$ is the Hamiltonian of the detector defined as
 \end{equation}
 $H_\mathrm{sys}$ is the Hamiltonian of the measured system which is defined, for a DQD in energy basis, as
 \begin{equation}
-    H_\mathrm{sys} = \frac{\omega_d}{2} \tau_z,
+    H_\mathrm{sys} = \frac{\omega_s}{2} \tau_z,
 \end{equation}
 $H_\mathrm{int}$ is the interaction Hamiltonian between the detector and the measured system, defined as
 \begin{equation}
@@ -49,7 +49,7 @@ where the $H$ is the Hamiltonian minus the bath and $l \in \{\mathrm{c}, \mathrm
 \begin{alphaAlign}
     \dot{a} &= - \left(i\omega_r + \frac{\kappa}{2}\right) a - i g \sigma_- - \sqrt{\kappa_\mathrm{c}} b_\mathrm{in}(t) - \sqrt{\kappa_\mathrm{i}} \xi(t) \\
     \dot{\sigma}_- &= -(i\omega_q + 2 i g_d C \tau_z + \Gamma_2^\sigma) \sigma_- + i(g a + g_d S \tau_-) \sigma_z\\
-    \dot{\tau}_- &= -(i\omega_d + 2 i g_d C \sigma_z + \Gamma_2^\tau) \tau_- + i g_d S \sigma_- \tau_z\\
+    \dot{\tau}_- &= -(i\omega_s + 2 i g_d C \sigma_z + \Gamma_2^\tau) \tau_- + i g_d S \sigma_- \tau_z\\
     \dot{\sigma}_z &= 2ig (a^\dagger \sigma_- - a \sigma_+) + 2 i g_d S (\tau_+ \sigma_- - \tau_-\sigma_+) - \Gamma_1^\sigma (\sigma_z + 1)\\
     \dot{\tau}_z &= 2 i g_d S (\sigma_+\tau_- - \sigma_- \tau_+) - \Gamma_1^\tau (\tau_z + 1),
 \end{alphaAlign}
