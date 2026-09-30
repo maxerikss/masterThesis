@@ -83,7 +83,7 @@ Carrying out similar calculations for each equation of motion gives the operator
         Rate & $\kappa$ & $\Gamma_1^\sigma$ & $\Gamma_1^\tau$ & $\Gamma_\phi^\sigma/2$ & $\Gamma_\phi^\tau/2$\\
         \bottomrule
     \end{tabular}
-    \caption{Lindblad jump operators, $L_i$, and their corresponding rates, $\gamma_i$. The possible dissipation channels are photon loss from cavity ($a$), longitudinal relaxation of the qubits ($\sigma_-, \tau_i$), and loss of phase coherence ($\sigma_z, \tau_z$).}
+    \caption{Lindblad jump operators, $L_i$, and their corresponding rates, $\gamma_i$. The possible dissipation channels are photon loss from cavity ($a$), longitudinal relaxation of the qubits ($\sigma_-, \tau_-$), and loss of phase coherence ($\sigma_z, \tau_z$).}
     \label{tab:dissipationRates}
 \end{table}
 
@@ -96,4 +96,36 @@ with
     H = H_\text{det} + H_\mathrm{sys} + H_\mathrm{int} + H_\text{drive}.
 \end{equation}
 
-The next step is to rotate this into the drive frame, such that we remove any time dependence and instead focus on detunings.
+The next step is to rotate this into the drive frame, such that we remove any time dependence and instead focus on detunings. For a coherent drive we can write 
+\begin{equation}
+    b_\text{in} = \beta e^{-i \omega_d t},
+\end{equation}
+with $\beta$ real and positive. Defining the unitary operator
+\begin{equation}
+    U(t) = e^{i H_\text{rot} t}
+\end{equation}
+with
+\begin{equation}
+    H_\text{rot} = \omega_d \left( a^\dagger a + \frac{\sigma_z}{2} + \frac{\tau_z}{2}\right).
+\end{equation}
+Rotating the Hamiltonian we get
+\begin{equation}
+    \tilde{H} = U H U^\dagger + i \dot U U^\dagger
+\end{equation}
+and introducing
+\begin{alphaAlign}
+    \Delta_r &= \omega_r - \omega_d\\
+    \Delta_q &= \omega_q - \omega_d\\
+    \Delta_s &= \omega_s - \omega_d
+\end{alphaAlign}
+we can write the full rotated Hamiltonian, dropping the tilde for simplicity, as
+\begin{multline}
+    H = \overbrace{\Delta_r a^\dagger a + \frac{\Delta_q}{2} \sigma_z + g(a^\dagger \sigma_- + a \sigma_+)}^\text{Detector } + \overbrace{\frac{\Delta_s}{2}\tau_z }^\text{System} + \\ \underbrace{g_d \left[ C \tau_z \sigma_z + S(\tau_+ \sigma_- + \tau_- \sigma_+) \right]}_\text{System-detector interaction} + \underbrace{i\sqrt{\kappa_c} \beta (a - a^\dagger)}_\text{Drive}
+\end{multline}
+
+\subsection{Some Approximations}
+To obtain an analytical expression to compare with numerical solutions we require some approximations. Since we want the measurement to be QND, and we can, by construction of the qubits, chose the tunnelling rates such that the mixing angles make $S=0$. We will also say that, since phase decoherence generally dominate we take the relaxation to be $\Gamma_1^\sigma = \Gamma_1^\tau = 0$. We will also consider a mean field interaction. Using these approximations $\tau_z$ becomes a constant of motion and the reflection coefficient can be written as
+\begin{equation}
+    r = 1 - \frac{\kappa_c}{\frac{\kappa}{2} + i \Delta_r + \frac{g^2}{\Gamma_\phi^\sigma + i (\Delta_q + 2 g_d C \tau_z)}},
+\end{equation}
+with $\tau_z = \pm 1$.
