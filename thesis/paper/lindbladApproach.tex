@@ -129,3 +129,10 @@ To obtain an analytical expression to compare with numerical solutions we requir
     r = 1 - \frac{\kappa_c}{\frac{\kappa}{2} + i \Delta_r + \frac{g^2}{\Gamma_\phi^\sigma + i (\Delta_q + 2 g_d C \tau_z)}},
 \end{equation}
 with $\tau_z = \pm 1$.
+
+\subsection{Measurement rate}
+From \textcite{Clerk:2010} we know that the measurement rate is bound by the measurement induce dephasing rate, $\Gamma_{\phi, \text{meas}}^\tau$. Furthermore, in the long time limit, we can write this measurement induced dephasing rate as
+\begin{equation}
+    \Gamma_{\phi, \text{meas}}^\tau = \frac{\kappa}{2} \abs{\expval{a}_\text{e}^\text{ss} - \expval{a}_\text{g}^\text{ss}}^2,
+\end{equation}
+where the subscript e/g denotes if the external qubit is in the excited or ground state, while ss denotes that it is the steady state \cite{Blais:2021}.
