@@ -1,6 +1,7 @@
 import numpy as np
 import qutip as qt
 from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
 from pathlib import Path
 import time
 
@@ -12,16 +13,16 @@ plt.rcParams['text.usetex'] = True
 # Quantities
 # all frequencies are in the RWA
 omega_r = 0 # frequency of the cavity
-omega_q = 3 # frequency of the inner qubit
-omega_s = 3 # frequency of the outer qubit
+omega_q = 8 # frequency of the inner qubit
+omega_s = 8 # frequency of the outer qubit
 omega_d = 0 # frequency of the drive
 
-beta = 0.05 # coherent drive amplitude
+beta = 5 # coherent drive amplitude
 
 g = 2 # light-matter coupling strength between the cavity and inner qubit
-gd = 2 # coupling strength between inner and outer qubit
+gd = 1 # coupling strength between inner and outer qubit
 
-theta_q = 0.01 # mixing angle of the inner qubit
+theta_q = 0.05 # mixing angle of the inner qubit
 theta_s = 0.5 # mixing angle of the outer qubit
 C = np.cos(2*theta_q) * np.cos(2*theta_s)
 S = np.sin(2*theta_q) * np.sin(2*theta_s)
@@ -259,7 +260,7 @@ def calculateSteadyState(sweep=['omegad', -5, 5, 250], omega_r=omega_r, omega_q=
 
     return density_Ground, density_Excited, sweepInfo
 
-def calculateMEsolve(rho0='ground', sweep=['none'], tMax=25, tRes=100, 
+def MEsolve(rho0='ground', sweep=['none'], tMax=25, tRes=100, 
                         omega_r=omega_r, omega_q=omega_q, omega_s=omega_s, omega_d=omega_d,
                         a=a, ad=ad,
                         sm=sm, sp=sp, sz=sz,
@@ -568,17 +569,72 @@ def calculateMeasurementRate(density, omega_r=omega_r, omega_q=omega_q, omega_s=
     fig.tight_layout()
     fig.savefig(output_dir / "Gamma_m.pdf")
 
+def calculateFullPlot(rho0='ground', sweep=['none', np.nan, np.nan, np.nan], tMax = 25, tRes=100,
+                    omega_r=omega_r, omega_q=omega_q, omega_s=omega_s, omega_d=omega_d,
+                    a=a, ad=ad,
+                    sm=sm, sp=sp, sz=sz,
+                    tm=tm, tp=tp, tz=tz,
+                    g=g, gd=gd, C=C, S=S, kappac=kappac, beta=beta,
+                    c_ops=c_ops, 
+                    e_ops=[a, tz, sz, ad*a]):
+    """
+    Future amazing docstring that will be soooo goood.
+    """
+    densityList, expectList, sweepInfo = MEsolve(rho0=rho0, sweep=sweep, tMax=tMax, tRes=tRes, e_ops=e_ops)
+
+    if sweepInfo[0] == 'none':
+        aList = expectList[0]
+        rList = 1 + np.sqrt(kappac) * aList / beta
+        tList = sweepInfo[2]
+
+        fig, axes = plt.subplots(2,2)
+        fig.set_size_inches(10,10)
+        ax00: Axes = axes[0, 0]
+        ax01: Axes = axes[0, 1]
+        ax10: Axes = axes[1, 0]
+        ax11: Axes = axes[1, 1]
+
+        ax00.plot(tList, np.abs(rList), color='blue')
+        ax00.set_xlabel(r'Time')
+        ax00.set_ylabel(r'$|r|$')
+
+        ax01.plot(tList, expectList[1], color='blue')
+        ax01.set_xlabel(r'Time')
+        ax01.set_ylabel(r'$\langle \tau_z \rangle$')
+
+        ax10.plot(tList, expectList[2], color='blue')
+        ax10.set_xlabel(r'Time')
+        ax10.set_ylabel(r'$\langle \sigma_z \rangle$')
+
+        ax11.plot(tList, expectList[3], color='blue')
+        ax11.set_xlabel(r'Time')
+        ax11.set_ylabel(r'$\langle a^\dagger a \rangle$')
+
+
+        output_dir = Path("calculateFullPlot")
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        fig.tight_layout()
+        fig.savefig(output_dir / "timeEvolve.pdf")
+
+        writeParameters(output_dir / "parameters.txt", [sweepInfo[0], np.min(sweepInfo[2]), np.max(sweepInfo[2])])    
+
+    if sweepInfo[0] == 'omegad':
+        pass
+
+
 
 
 ## Running calculations
+startTime = time.time()
 
-#density = calculateSteadyState()#sweep=['omegaq', -15, 15])
+calculateFullPlot(rho0='excited')
+
+#density = calculateSteadyState(sweep=['omegad', -10, 10, 250])
 #calculateMeasurementRate(density)
 #calculateReflectionCompare(density)
 
-startTime = time.time()
-
-densityList, expectList, sweepInfo = calculateMEsolve(rho0='excited', sweep=['omegad', -10, 10, 100], tMax=25, tRes=100)
+densityList, expectList, sweepInfo = MEsolve(rho0='excited', sweep=['omegad', -10, 10, 100], tMax=25, tRes=100)
 aList = expectList[0]
 
 rList = 1 + np.sqrt(kappac) * aList / beta
