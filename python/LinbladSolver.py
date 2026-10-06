@@ -10,19 +10,20 @@ plt.rc('font',**{'family':'serif','serif':['Computer Modern'], 'size':'18'})
 plt.rc('text.latex', preamble=r'\usepackage{amssymb,amsmath,amsfonts,amsthm}')
 plt.rcParams['text.usetex'] = True
 
+"""
 # Quantities
 # all frequencies are in the RWA
 omega_r = 0 # frequency of the cavity
-omega_q = 8 # frequency of the inner qubit
-omega_s = 8 # frequency of the outer qubit
+omega_q = 3 # frequency of the inner qubit
+omega_s = 3 # frequency of the outer qubit
 omega_d = 0 # frequency of the drive
 
-beta = 5 # coherent drive amplitude
+beta = 0.05 # coherent drive amplitude
 
 g = 2 # light-matter coupling strength between the cavity and inner qubit
 gd = 1 # coupling strength between inner and outer qubit
 
-theta_q = 0.05 # mixing angle of the inner qubit
+theta_q = 0.1 # mixing angle of the inner qubit
 theta_s = 0.5 # mixing angle of the outer qubit
 C = np.cos(2*theta_q) * np.cos(2*theta_s)
 S = np.sin(2*theta_q) * np.sin(2*theta_s)
@@ -34,9 +35,33 @@ Gamma_1s = 0.1 # relaxation rate of inner qubit
 Gamma_phis = 0.2 # dephasing rate of inner qubit
 Gamma_2s = Gamma_1s/2 + Gamma_phis
 
-Gamma_1t = 0.001 # relaxation rate of outer qubit
+Gamma_1t = 0.00 # relaxation rate of outer qubit
 Gamma_phit = 0.2 # dephasing rate of outer qubit
 Gamma_2t = Gamma_1t/2 + Gamma_phit
+"""
+params = {
+    "omega_r": 0,    # frequency of the cavity
+    "omega_q": 3,    # frequency of the inner qubit
+    "omega_s": 3,    # frequency of the outer qubit
+    "omega_d": 0,    # frequency of the drive
+
+    "beta": 0.05,    # coherent drive amplitude
+
+    "g": 2,          # light-matter coupling strength between the cavity and inner qubit
+    "gd": 1,         # coupling strength between inner and outer qubit
+
+    "theta_q": 0.1,  # mixing angle of the inner qubit
+    "theta_s": 0.5,  # mixing angle of the outer qubit
+
+    "kappac": 0.5,   # cavity coupling rate to the transmission line
+    "kappa": 1,      # total cavity decay rate
+
+    "Gamma_1s": 0.1,    # relaxation rate of inner qubit
+    "Gamma_phis": 0.2,  # dephasing rate of inner qubit
+
+    "Gamma_1t": 0.00,   # relaxation rate of outer qubit
+    "Gamma_phit": 0.2,  # dephasing rate of outer qubit
+}
 
 ## Qutip stuff
 # cavity
@@ -57,22 +82,20 @@ tz = qt.tensor(qt.qeye(N), qt.qeye(2), qt.sigmaz())
 
 # Dissipators
 c_ops = [
-    np.sqrt(kappa) * a,
-    np.sqrt(Gamma_1s) * sm,
-    np.sqrt(Gamma_1t) * tm,
-    np.sqrt(Gamma_phis/2) * sz,
-    np.sqrt(Gamma_phit/2) * tz 
+    np.sqrt(params['kappa']) * a,
+    np.sqrt(params['Gamma_1s']) * sm,
+    np.sqrt(params['Gamma_1t']) * tm,
+    np.sqrt(params['Gamma_phis']/2) * sz,
+    np.sqrt(params['Gamma_phit']/2) * tz 
 ]
 
 ##### Functions
 
 # Hamiltonian
-def Hamiltonian(Delta_r, Delta_q, Delta_s,
-                beta=beta,
+def Hamiltonian(Delta_r, Delta_q, Delta_s, params,
                 a=a, ad=ad,
                 sm=sm, sp=sp, sz=sz,
-                tm=tm, tp=tp, tz=tz,
-                g=g, gd=gd, C=C, S=S, kappac=kappac):
+                tm=tm, tp=tp, tz=tz):
     """
     Calculates the Hamiltonian in the rotating frame of the drive frequency omega_d.
 
@@ -116,54 +139,55 @@ def Hamiltonian(Delta_r, Delta_q, Delta_s,
         Hamiltonian (qutip.Qobj):
             The Hamiltonian in the rotating frame of the drive frequency omega_d.
     """
+    g = params['g']
+    gd = params['gd']
+    kappac = params['kappac']
+    beta = params['beta']
+    theta_q = params['theta_q']
+    theta_s = params['theta_s']
+    C = np.cos(2*theta_q) * np.cos(2*theta_s)
+    S = np.sin(2*theta_q) * np.sin(2*theta_s)
+
     H_det = Delta_r * ad * a + Delta_q/2 * sz + g * (ad * sm + a * sp)
     H_sys = Delta_s/2 * tz
     H_int = gd * (C * tz * sz + S * (tp * sm + tm * sp))
     H_drive = 1j * np.sqrt(kappac) * beta * (a - ad)
     return H_det + H_sys + H_int + H_drive
 
-def writeParameters(filename, sweep):
+def writeParameters(filename, sweep, params):
     """
-    Saves the parameters used in a text file for later reference. The main use is in other function that generate plots.
+    Saves the parameters used in a text file for later reference. The main use is in other functions that generate plots.
 
     Parameters:
         filename (Path):
             The path to the file where the parameters will be saved.
         sweep (list):
-            A list containing the sweep parameter and its range. The first element is a string indicating which parameter is being swept. Second and third elementa are the minimum and maximum values of the sweep.
+            A list containing the sweep parameter and its range. The first element is a string indicating which parameter is being swept. Second and third elements are the minimum and maximum values of the sweep.
+        params (dict):
+            Dictionary of the fixed parameters (omega_r, beta, g, ...). Entries for the swept parameter are overridden by the sweep range.
     """
-    with open(filename, 'w') as f:
-        if sweep[0] == 'omegad':
-            f.write(f"omega_d = [{sweep[1]}, {sweep[2]}]\n")
-        else:
-            f.write(f"omega_d = {omega_d}\n")
-        if sweep[0] == 'omegaq':
-            f.write(f"omega_q = [{sweep[1]}, {sweep[2]}]\n")
-        else:
-            f.write(f"omega_q = {omega_q}\n")
-        f.write(f"omega_r = {omega_r}\n")
-        f.write(f"omega_s = {omega_s}\n")
-        f.write(f"beta = {beta}\n")
-        f.write(f"g = {g}\n")
-        f.write(f"gd = {gd}\n")
-        f.write(f"theta_q = {theta_q}\n")
-        f.write(f"theta_s = {theta_s}\n")
-        f.write(f"C = {C}\n")
-        f.write(f"S = {S}\n")
-        f.write(f"kappac = {kappac}\n")
-        f.write(f"kappa = {kappa}\n")
-        f.write(f"Gamma_1s = {Gamma_1s}\n")
-        f.write(f"Gamma_phis = {Gamma_phis}\n")
-        f.write(f"Gamma_2s = {Gamma_2s}\n")
-        f.write(f"Gamma_1t = {Gamma_1t}\n")
-        f.write(f"Gamma_phit = {Gamma_phit}\n")
-        f.write(f"Gamma_2t = {Gamma_2t}\n")
+    # Map sweep names to the parameter they replace
+    sweptKeys = {"omegad": "omega_d", "omegaq": "omega_q"}
+    sweptKey = sweptKeys.get(sweep[0])
+    # Order in which parameters are written to the file
+    PARAM_ORDER = [
+                "omega_d", "omega_q", "omega_r", "omega_s", "beta", "g", "gd",
+                "theta_q", "theta_s", "C", "S", "kappac", "kappa",
+                "Gamma_1s", "Gamma_phis", "Gamma_2s",
+                "Gamma_1t", "Gamma_phit", "Gamma_2t",
+                ]
 
-def calculateSteadyState(sweep=['omegad', -5, 5, 250], omega_r=omega_r, omega_q=omega_q, omega_s=omega_s, omega_d=omega_d,
+    with open(filename, 'w') as f:
+        for key in PARAM_ORDER:
+            if key == sweptKey:
+                f.write(f"{key} = [{sweep[1]}, {sweep[2]}]\n")
+            else:
+                f.write(f"{key} = {params[key]}\n")
+
+def calculateSteadyState(params, sweep=['omegad', -5, 5, 250],
                             a=a, ad=ad,
                             sm=sm, sp=sp, sz=sz,
                             tm=tm, tp=tp, tz=tz,
-                            g=g, gd=gd, C=C, S=S, kappac=kappac, beta=beta,
                             c_ops=c_ops):
     """
     Calculates the steady state density matrices when considering the outer qubit frozen in either the ground state, tz=-1, or the excited state, tz=1.
@@ -226,12 +250,12 @@ def calculateSteadyState(sweep=['omegad', -5, 5, 250], omega_r=omega_r, omega_q=
         sweepInfo = [sweep[0], omega_d_values]
 
         for omega_d in omega_d_values:
-            Delta_r = omega_r - omega_d
-            Delta_q = omega_q - omega_d
-            Delta_s = omega_s - omega_d
+            Delta_r = params['omega_r'] - omega_d
+            Delta_q = params['omega_q'] - omega_d
+            Delta_s = params['omega_s'] - omega_d
 
-            H_ground = Hamiltonian(Delta_r, Delta_q, Delta_s, tz=-1)
-            H_excited = Hamiltonian(Delta_r, Delta_q, Delta_s, tz=1)
+            H_ground = Hamiltonian(Delta_r, Delta_q, Delta_s, params, tz=-1)
+            H_excited = Hamiltonian(Delta_r, Delta_q, Delta_s, params, tz=1)
 
             ground_ss = qt.steadystate(H_ground, c_ops)
             excited_ss = qt.steadystate(H_excited, c_ops)
@@ -245,12 +269,12 @@ def calculateSteadyState(sweep=['omegad', -5, 5, 250], omega_r=omega_r, omega_q=
         sweepInfo = [sweep[0], omega_q_values]
 
         for omega_q in omega_q_values:
-            Delta_r = omega_r - omega_d
-            Delta_q = omega_q - omega_d
-            Delta_s = omega_s - omega_d
+            Delta_r = params['omega_r'] - params['omega_d']
+            Delta_q = omega_q - params['omega_d']
+            Delta_s = params['omega_s'] - params['omega_d']
 
-            H_ground = Hamiltonian(Delta_r, Delta_q, Delta_s, tz=-1)
-            H_excited = Hamiltonian(Delta_r, Delta_q, Delta_s, tz=1)
+            H_ground = Hamiltonian(Delta_r, Delta_q, Delta_s, params, tz=-1)
+            H_excited = Hamiltonian(Delta_r, Delta_q, Delta_s, params, tz=1)
 
             ground_ss = qt.steadystate(H_ground, c_ops)
             excited_ss = qt.steadystate(H_excited, c_ops)
@@ -260,12 +284,10 @@ def calculateSteadyState(sweep=['omegad', -5, 5, 250], omega_r=omega_r, omega_q=
 
     return density_Ground, density_Excited, sweepInfo
 
-def MEsolve(rho0='ground', sweep=['none'], tMax=25, tRes=100, 
-                        omega_r=omega_r, omega_q=omega_q, omega_s=omega_s, omega_d=omega_d,
+def MEsolve(params, rho0='ground', sweep=['none'], tMax=25, tRes=100,
                         a=a, ad=ad,
                         sm=sm, sp=sp, sz=sz,
                         tm=tm, tp=tp, tz=tz,
-                        g=g, gd=gd, C=C, S=S, kappac=kappac, beta=beta,
                         c_ops=c_ops, 
                         e_ops=[a, tz, sz, ad*a]):
     """
@@ -594,33 +616,68 @@ def calculateFullPlot(rho0='ground', sweep=['none', np.nan, np.nan, np.nan], tMa
         ax10: Axes = axes[1, 0]
         ax11: Axes = axes[1, 1]
 
-        ax00.plot(tList, np.abs(rList), color='blue')
-        ax00.set_xlabel(r'Time')
-        ax00.set_ylabel(r'$|r|$')
+        panels = [
+                (ax00, np.abs(rList), r"$|r|$"),
+                (ax01, np.real(expectList[1]), r"$\langle \tau_z \rangle$"),
+                (ax10, np.real(expectList[2]), r"$\langle \sigma_z \rangle$"),
+                (ax11, np.real(expectList[3]), r"$\langle a^\dagger a \rangle$"),
+                ]
 
-        ax01.plot(tList, expectList[1], color='blue')
-        ax01.set_xlabel(r'Time')
-        ax01.set_ylabel(r'$\langle \tau_z \rangle$')
-
-        ax10.plot(tList, expectList[2], color='blue')
-        ax10.set_xlabel(r'Time')
-        ax10.set_ylabel(r'$\langle \sigma_z \rangle$')
-
-        ax11.plot(tList, expectList[3], color='blue')
-        ax11.set_xlabel(r'Time')
-        ax11.set_ylabel(r'$\langle a^\dagger a \rangle$')
-
+        for ax, data, label in panels:
+            ax.plot(tList, data, color='blue')
+            ax.set_xlabel(r'Time')
+            ax.set_ylabel(r'$|r|$')
 
         output_dir = Path("calculateFullPlot")
         output_dir.mkdir(parents=True, exist_ok=True)
 
         fig.tight_layout()
-        fig.savefig(output_dir / "timeEvolve.pdf")
+        figFileName = rho0 + "TimeEvolve.pdf"
+        fig.savefig(output_dir / figFileName)
 
-        writeParameters(output_dir / "parameters.txt", [sweepInfo[0], np.min(sweepInfo[2]), np.max(sweepInfo[2])])    
+        parameterFileName = rho0 + "NoneParameters.txt"
+
+        writeParameters(output_dir / parameterFileName, [sweepInfo[0], np.min(sweepInfo[2]), np.max(sweepInfo[2])])    
 
     if sweepInfo[0] == 'omegad':
-        pass
+        aList = expectList[0]
+
+        rList = 1 + np.sqrt(kappac) * aList / beta
+        tList = sweepInfo[2]
+        Delta_r = omega_r - sweepInfo[1] 
+
+        fig, axes = plt.subplots(2,2)
+        fig.set_size_inches(15,10)
+        ax00: Axes = axes[0, 0]
+        ax01: Axes = axes[0, 1]
+        ax10: Axes = axes[1, 0]
+        ax11: Axes = axes[1, 1]
+
+        panels = [
+                (ax00, np.abs(rList), r"$|r|$"),
+                (ax01, np.real(expectList[1]), r"$\langle \tau_z \rangle$"),
+                (ax10, np.real(expectList[2]), r"$\langle \sigma_z \rangle$"),
+                (ax11, np.real(expectList[3]), r"$\langle a^\dagger a \rangle$"),
+                ]
+        for ax, data, label in panels:
+            mesh = ax.pcolormesh(tList, Delta_r, data, cmap="viridis", shading="auto", rasterized=True)
+            cbar = fig.colorbar(mesh, ax=ax, label=label)
+            cbar.solids.set_rasterized(True)
+            ax.set_xlabel("Time")
+            ax.set_ylabel(r"$\Delta_r$")
+
+        output_dir = Path("calculateFullPlot")
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        figFileName = rho0 + "OmegadSweepTimeEvolve.pdf"
+
+        fig.tight_layout()
+        fig.savefig(output_dir / figFileName)
+
+        parameterFileName = rho0 + "OmegadParameters.txt"
+
+        writeParameters(output_dir / parameterFileName, [sweepInfo[0], np.min(sweepInfo[2]), np.max(sweepInfo[2])])    
+
 
 
 
@@ -628,12 +685,18 @@ def calculateFullPlot(rho0='ground', sweep=['none', np.nan, np.nan, np.nan], tMa
 ## Running calculations
 startTime = time.time()
 
-calculateFullPlot(rho0='excited')
+
+
+calculateFullPlot(rho0='excited', sweep=['omegad', -10, 10, 100], tMax=15, tRes=60)
+calculateFullPlot(rho0='ground', sweep=['omegad', -10, 10, 100], tMax=15, tRes=60)
+
+endTime = time.time()
+print(f"Time taken: {round(endTime - startTime, 2)} seconds")
 
 #density = calculateSteadyState(sweep=['omegad', -10, 10, 250])
 #calculateMeasurementRate(density)
 #calculateReflectionCompare(density)
-
+"""
 densityList, expectList, sweepInfo = MEsolve(rho0='excited', sweep=['omegad', -10, 10, 100], tMax=25, tRes=100)
 aList = expectList[0]
 
@@ -657,9 +720,8 @@ ax.set_ylabel(r'$\Delta_r$')
 fig.colorbar(im, ax=ax, label=r'$|r|$')
 
 plt.savefig("./test.pdf")
+"""
 
-endTime = time.time()
-print(f"Time taken: {round(endTime - startTime, 2)} seconds")
 
 """
 density, expect, sweepInfo = calculateMEsolve(rho0='excited')
