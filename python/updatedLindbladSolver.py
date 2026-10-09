@@ -11,7 +11,7 @@ plt.rc('text.latex', preamble=r'\usepackage{amssymb,amsmath,amsfonts,amsthm}')
 plt.rcParams['text.usetex'] = True
 
 ## QuTiP operators (these do not depend on the physical parameters)
-N = 10  # size of cavity Hilbert space
+N = 20  # size of cavity Hilbert space
 
 # Cavity
 a = qt.tensor(qt.destroy(N), qt.qeye(2), qt.qeye(2))
@@ -476,6 +476,59 @@ def calculateFullPlot(params, rho0='ground', sweep=['none', np.nan, np.nan, np.n
     writeParameters(output_dir / parameterFileName,
                     [sweepInfo[0], np.min(sweepInfo[1]), np.max(sweepInfo[1])], p)
 
+def expectationM(tau, expectA, phi, params):
+    sqrt_kappac = np.sqrt(params['kappac'])
+
+    aVals = np.asarray(expectA[0])
+    tVals = np.asarray(expectA[1])
+    tau = np.atleast_1d(tau).astype(float)
+
+    # bounds check
+    if np.any(tau < tVals[0]) or np.any(tau > tVals[-1]):
+        raise ValueError(
+            f"tau must lie within the simulated time range "
+            f"[{tVals[0]}, {tVals[-1]}], but got values from "
+            f"{tau.min()} to {tau.max()}"
+        )
+
+    # integrand on the full grid
+    X = 2 * np.real(np.exp(-1j * phi) * aVals)
+
+    # cumulative trapezoid integral: C[i] = integral from tVals[0] to tVals[i]
+    C = np.concatenate(([0.0], np.cumsum(0.5 * (X[1:] + X[:-1]) * np.diff(tVals))))
+
+    # index of the last grid point at or before each tau
+    i = np.searchsorted(tVals, tau, side='right') - 1
+
+    # add the partial interval from tVals[i] to tau (X linearly interpolated)
+    Xtau = np.interp(tau, tVals, X)
+    result = C[i] + 0.5 * (X[i] + Xtau) * (tau - tVals[i])
+
+    return sqrt_kappac * result
+
+def CalculateC(params, tList, rho0='ground', sweep='none'):
+    p = withDerived(params)
+    c_ops = makeCollapseOps(p)
+
+    if rho0 == 'ground':
+        initKetState = qt.tensor(qt.basis(N, 0), qt.basis(2, 1), qt.basis(2, 1))  # outer qubit in |1> (ground) eigval -1
+    elif rho0 == 'excited':
+        initKetState = qt.tensor(qt.basis(N, 0), qt.basis(2, 1), qt.basis(2, 0))  # outer qubit in |0> (excited) eigval 1
+    else:
+        raise ValueError(f"rho0 must be 'ground' or 'excited', got {rho0}")
+
+    initRhoState = qt.ket2dm(initKetState)
+
+    if sweep == 'none':
+        Delta_r, Delta_q, Delta_s = getDetunings(p, sweep, None)
+
+        H = Hamiltonian(Delta_r, Delta_q, Delta_s, p)
+
+        at_atau = qt.correlation_2op_2t(H, initRhoState, tList, tauList, c_ops, a, a)
+
+
+
+    
 
 ##############################################################################
 ## Parameters: edit these. Everything below the function definitions uses them.
@@ -487,13 +540,13 @@ params = {
     "omega_s": 3,    # frequency of the outer qubit
     "omega_d": 0,    # frequency of the drive
 
-    "beta": 0.05,    # coherent drive amplitude
+    "beta": 1,    # coherent drive amplitude
 
     "g": 2,          # light-matter coupling strength between the cavity and inner qubit
     "gd": 1,         # coupling strength between inner and outer qubit
 
     "theta_q": 0.1,  # mixing angle of the inner qubit
-    "theta_s": 0.5,  # mixing angle of the outer qubit
+    "theta_s": 0.1,  # mixing angle of the outer qubit
 
     "kappac": 0.5,   # cavity coupling rate to the transmission line
     "kappa": 1,      # total cavity decay rate
@@ -501,25 +554,45 @@ params = {
     "Gamma_1s": 0.1,    # relaxation rate of inner qubit
     "Gamma_phis": 0.2,  # dephasing rate of inner qubit
 
-    "Gamma_1t": 0.00,   # relaxation rate of outer qubit
+    "Gamma_1t": 0.0,   # relaxation rate of outer qubit
     "Gamma_phit": 0.2,  # dephasing rate of outer qubit
 }
 # C, S, Gamma_2s and Gamma_2t are derived automatically (see withDerived),
 # and the dissipators are rebuilt from these values inside each function.
 
-# To try other values without touching the dictionary above:
-# params_other = {**params, "beta": 0.1, "theta_q": 0.2}
-# calculateFullPlot(params_other, ...)
 
 
 ## Running calculations
 startTime = time.time()
 
-calculateFullPlot(params, rho0='excited', sweep=['omegad', -10, 10, 100], tMax=15, tRes=60)
-calculateFullPlot(params, rho0='ground', sweep=['omegad', -10, 10, 100], tMax=15, tRes=60)
+#calculateFullPlot(params, rho0='excited', sweep=['omegad', -10, 10, 100], tMax=15, tRes=60)
+#calculateFullPlot(params, rho0='ground', sweep=['omegad', -10, 10, 100], tMax=15, tRes=60)
+
+densityList, expectList, sweepInfo = MEsolve(params, rho0='ground', tMax=30, tRes=200)
+groundExpectA = [expectList[0], sweepInfo[2]]
+
+densityList, expectList, sweepInfo = MEsolve(params, rho0='excited', tMax=30, tRes=200)
+excitedExpectA = [expectList[0], sweepInfo[2]]
+
+tauList = np.linspace(0, 5, 100)
+
+groundExpectM = expectationM(tauList, groundExpectA, np.pi/4, params)
+excitedExpectM = expectationM(tauList, excitedExpectA, np.pi/4, params)
+
+diffExpectM = np.abs(excitedExpectM - groundExpectM)
+
+plt.plot(tauList, groundExpectM, color='blue')
+plt.plot(tauList, excitedExpectM, color='red')
+plt.plot(tauList, diffExpectM, color='orange')
+plt.hlines([0,1], tauList[0], tauList[-1], colors=['k'], linestyles=['--'])
+plt.savefig('./test.pdf')
+
 
 endTime = time.time()
-print(f"Time taken: {round(endTime - startTime, 2)} seconds")
+timeDifference = endTime - startTime
+minutes = timeDifference // 60
+seconds = timeDifference % 60
+print(f"Time taken: {int(minutes)} m {int(seconds)} s")
 
 # density = calculateSteadyState(params, sweep=['omegad', -10, 10, 250])
 # calculateMeasurementRate(density, params)
