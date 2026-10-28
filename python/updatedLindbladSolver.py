@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from pathlib import Path
 import time
+from tqdm import tqdm
 
 #  Matplotlib setup
 plt.rc('font', **{'family': 'serif', 'serif': ['Computer Modern'], 'size': '18'})
@@ -481,7 +482,6 @@ def expectationM(tau, expectA, phi, params):
 
     aVals = np.asarray(expectA[0])
     tVals = np.asarray(expectA[1])
-    tau = np.atleast_1d(tau).astype(float)
 
     # bounds check
     if np.any(tau < tVals[0]) or np.any(tau > tVals[-1]):
@@ -506,7 +506,7 @@ def expectationM(tau, expectA, phi, params):
 
     return sqrt_kappac * result
 
-def CalculateC(params, tList, rho0='ground', sweep='none'):
+def CalculateC(params, tList, phi, rho0='ground', sweep='none'):
     p = withDerived(params)
     c_ops = makeCollapseOps(p)
 
@@ -524,9 +524,71 @@ def CalculateC(params, tList, rho0='ground', sweep='none'):
 
         H = Hamiltonian(Delta_r, Delta_q, Delta_s, p)
 
-        at_atau = qt.correlation_2op_2t(H, initRhoState, tList, tauList, c_ops, a, a)
+        aT_at = qt.correlation_2op_2t(H, initRhoState, tList, tList, c_ops, a, a)
+        adT_at = qt.correlation_2op_2t(H, initRhoState, tList, tList, c_ops, ad, a)
+        #adt_aT = qt.correlation_2op_2t(H, initRhoState, tList, tList, c_ops, ad, a, reverse=True)
+        #adt_adT = qt.correlation_2op_2t(H, initRhoState, tList, tList, c_ops, ad, ad, reverse=True)
+        adt_aT = np.conj(adT_at)
+        adt_adT = np.conj(aT_at)
+
+        aVals = qt.mesolve(H, initRhoState, tList, c_ops, e_ops=[a]).expect[0]
+
+        X = 2 * np.real(np.exp(-1j * phi) * aVals)
+
+        n = len(tList)                                  # Matrix Looks like:    X X X X 
+        prod = np.zeros((n, n))                         #                       X X X 0
+        for i in range(n):                              #                       X X 0 0
+            prod[i, : n - i] = X[i] * X[i:]             #                       X 0 0 0 
+
+        return np.exp(-2j*phi) * aT_at + adT_at + adt_aT + np.exp(2j*phi) * adt_adT - prod
+    
+def doubleIntegralCumulative(C, dt):
+    """Return I[m] = integral of C(t,t') over the full square [0,T_m]^2, for every m,
+    assuming C is symmetric under t <-> t'. C[i,k] = C(t'=t_i, t=t_i+t_k)."""
+    n = C.shape[0]
+    A = C[:, ::-1]                      # anti-diagonals of C become diagonals of A
+    # h[m] = integral over t' of C(t=T_m, t'),  entries C[i, m-i], i = 0..m
+    h = np.array([np.trapz(np.diagonal(A, offset=n-1-m), dx=dt) for m in range(n)])
+    # F[m] = running integral of h  (this is the triangle integral)
+    F = np.concatenate(([0.0], np.cumsum(0.5*dt*(h[1:] + h[:-1]))))
+    return 2*F                          # factor 2: the other triangle
+
+def variance(p, C, tList):
+    dt = tList[1] - tList[0]
+    return tList + p['kappac'] * doubleIntegralCumulative(C, dt)
+
+def calculateSNR(params, phi, tMax, tRes):
+    p = withDerived(params)
+
+    tList = np.linspace(0, tMax, tRes)
 
 
+    densityList, expectList, sweepInfo = MEsolve(p, rho0='ground', tMax=tMax, tRes=tRes, e_ops=[a])
+    groundExpectA = [expectList[0], sweepInfo[2]]
+
+    densityList, expectList, sweepInfo = MEsolve(p, rho0='excited', tMax=tMax, tRes=tRes, e_ops=[a])
+    excitedExpectA = [expectList[0], sweepInfo[2]]
+
+    Mstart = time.time()
+    groundExpectM = expectationM(tList, groundExpectA, phi, p)
+    excitedExpectM = expectationM(tList, excitedExpectA, phi, p)
+    diffExpectM = np.abs(excitedExpectM - groundExpectM)  
+    Mend = time.time()
+    print(f'M: {Mend-Mstart}') 
+
+    Cstart = time.time()
+    Cground = CalculateC(p, tList, phi, rho0='ground')
+    Cexcited = CalculateC(p, tList, phi, rho0='excited')
+    Cend = time.time()
+    print(f'C: {Cend - Cstart}')
+
+    stdGround = np.sqrt(variance(p, Cground, tList))
+    stdExcited = np.sqrt(variance(p, Cexcited, tList))
+
+    snr = np.zeros_like(tList)
+    snr[1:] = np.real(diffExpectM[1:] / (stdGround[1:] + stdExcited[1:]))
+
+    return snr, tList
 
     
 
@@ -536,17 +598,17 @@ def CalculateC(params, tList, rho0='ground', sweep='none'):
 # all frequencies are in the RWA
 params = {
     "omega_r": 0,    # frequency of the cavity
-    "omega_q": 3,    # frequency of the inner qubit
-    "omega_s": 3,    # frequency of the outer qubit
+    "omega_q": 4,    # frequency of the inner qubit
+    "omega_s": 4,    # frequency of the outer qubit
     "omega_d": 0,    # frequency of the drive
 
     "beta": 1,    # coherent drive amplitude
 
     "g": 2,          # light-matter coupling strength between the cavity and inner qubit
-    "gd": 1,         # coupling strength between inner and outer qubit
+    "gd": 2,         # coupling strength between inner and outer qubit
 
-    "theta_q": 0.1,  # mixing angle of the inner qubit
-    "theta_s": 0.1,  # mixing angle of the outer qubit
+    "theta_q": 0.01,  # mixing angle of the inner qubit
+    "theta_s": 0.01,  # mixing angle of the outer qubit
 
     "kappac": 0.5,   # cavity coupling rate to the transmission line
     "kappa": 1,      # total cavity decay rate
@@ -568,23 +630,12 @@ startTime = time.time()
 #calculateFullPlot(params, rho0='excited', sweep=['omegad', -10, 10, 100], tMax=15, tRes=60)
 #calculateFullPlot(params, rho0='ground', sweep=['omegad', -10, 10, 100], tMax=15, tRes=60)
 
-densityList, expectList, sweepInfo = MEsolve(params, rho0='ground', tMax=30, tRes=200)
-groundExpectA = [expectList[0], sweepInfo[2]]
+snr, tList = calculateSNR(params, 0, 40, 50)
 
-densityList, expectList, sweepInfo = MEsolve(params, rho0='excited', tMax=30, tRes=200)
-excitedExpectA = [expectList[0], sweepInfo[2]]
+plt.plot(tList, snr, color='blue')
 
-tauList = np.linspace(0, 5, 100)
+plt.hlines([0,1], tList[0], tList[-1], colors=['k'], linestyles=['--'])
 
-groundExpectM = expectationM(tauList, groundExpectA, np.pi/4, params)
-excitedExpectM = expectationM(tauList, excitedExpectA, np.pi/4, params)
-
-diffExpectM = np.abs(excitedExpectM - groundExpectM)
-
-plt.plot(tauList, groundExpectM, color='blue')
-plt.plot(tauList, excitedExpectM, color='red')
-plt.plot(tauList, diffExpectM, color='orange')
-plt.hlines([0,1], tauList[0], tauList[-1], colors=['k'], linestyles=['--'])
 plt.savefig('./test.pdf')
 
 
